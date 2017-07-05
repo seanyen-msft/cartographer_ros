@@ -50,8 +50,13 @@ SensorBridge::SensorBridge(
 std::unique_ptr<::cartographer::sensor::OdometryData>
 SensorBridge::ToOdometryData(const nav_msgs::Odometry::ConstPtr& msg) {
   const carto::common::Time time = FromRos(msg->header.stamp);
-  const auto sensor_to_tracking = tf_bridge_.LookupToTracking(
-      time, CheckNoLeadingSlash(msg->child_frame_id));
+  const auto sensor_to_tracking =
+      msg->child_frame_id.empty()
+        ? ::cartographer::common::make_unique<
+              ::cartographer::transform::Rigid3d>(
+              ::cartographer::transform::Rigid3d::Identity())
+        : tf_bridge_.LookupToTracking(
+              time, CheckNoLeadingSlash(msg->child_frame_id));
   if (sensor_to_tracking == nullptr) {
     return nullptr;
   }
