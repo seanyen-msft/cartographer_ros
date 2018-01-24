@@ -43,6 +43,7 @@
 #include "tf2_eigen/tf2_eigen.h"
 #include "visualization_msgs/MarkerArray.h"
 
+#include "nav_msgs/Path.h"
 namespace cartographer_ros {
 
 namespace {
@@ -255,10 +256,17 @@ void Node::PublishTrajectoryStates(const ::ros::WallTimerEvent& timer_event) {
   }
 }
 
+ros::Publisher* pathpub = nullptr;
+
 void Node::PublishTrajectoryNodeList(
     const ::ros::WallTimerEvent& unused_timer_event) {
+  if (pathpub == nullptr) {
+    pathpub = new ros::Publisher();
+    *pathpub = ros::NodeHandle().advertise<nav_msgs::Path>("path", 1);
+  }
   carto::common::MutexLocker lock(&mutex_);
-  if (trajectory_node_list_publisher_.getNumSubscribers() > 0) {
+  if (trajectory_node_list_publisher_.getNumSubscribers() > 0 ||
+      pathpub->getNumSubscribers() > 0) {
     trajectory_node_list_publisher_.publish(
         map_builder_bridge_.GetTrajectoryNodeList());
   }

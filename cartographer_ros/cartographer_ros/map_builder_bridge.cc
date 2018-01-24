@@ -15,6 +15,7 @@
  */
 
 #include "cartographer_ros/map_builder_bridge.h"
+#include "nav_msgs/Path.h"
 
 #include "cartographer/common/make_unique.h"
 #include "cartographer/io/color.h"
@@ -244,20 +245,33 @@ MapBuilderBridge::GetTrajectoryStates() {
   return trajectory_states;
 }
 
+
+extern ros::Publisher* pathpub;
+
 visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList() {
   visualization_msgs::MarkerArray trajectory_node_list;
-  const auto node_poses = map_builder_->pose_graph()->GetTrajectoryNodePoses();
+
+  const auto node_poses = map_builder_->pose_graph()->GetTrajectoryNodes();
   for (const int trajectory_id : node_poses.trajectory_ids()) {
     visualization_msgs::Marker marker =
         CreateTrajectoryMarker(trajectory_id, node_options_.map_frame);
-
+    nav_msgs::Path path;
+    path.header.frame_id = "map";
+    path.header.stamp = ros::Time::now();
     for (const auto& node_id_data : node_poses.trajectory(trajectory_id)) {
-      if (!node_id_data.data.has_constant_data) {
+
+      if (node_id_data.data.constant_data == nullptr) {
         PushAndResetLineMarker(&marker, &trajectory_node_list.markers);
         continue;
       }
       const ::geometry_msgs::Point node_point =
           ToGeometryMsgPoint(node_id_data.data.global_pose.translation());
+
+      geometry_msgs::PoseStamped node_pose;
+      node_pose.pose = ToGeometryMsgPose(node_id_data.data.global_pose);
+      node_pose.header.frame_id = "base_link";
+      node_pose.header.stamp = ToRos(node_id_data.data.time());
+      path.poses.push_back(node_pose);
       marker.points.push_back(node_point);
       // Work around the 16384 point limit in RViz by splitting the
       // trajectory into multiple markers.
@@ -268,6 +282,7 @@ visualization_msgs::MarkerArray MapBuilderBridge::GetTrajectoryNodeList() {
       }
     }
     PushAndResetLineMarker(&marker, &trajectory_node_list.markers);
+    pathpub->publish(path);
   }
   return trajectory_node_list;
 }
