@@ -8,6 +8,7 @@ resources:
 jobs:
 - template: build.yml@templates  # Template reference
   parameters:
+    ros_metapackage: 'ros-melodic-moveit'
     pre_build:
     - script: |
         git clone https://github.com/seanyen-msft/cartographer -b windows
