@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+add_compile_options(/showIncludes)
+
 google_binary(cartographer_assets_writer
   SRCS
     assets_writer_main.cc
